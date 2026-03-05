@@ -52,8 +52,27 @@ class DashboardScreen extends ConsumerWidget {
             backgroundColor: Colors.white,
             surfaceTintColor: Colors.white,
             elevation: 0,
-            flexibleSpace: const FlexibleSpaceBar(
-              background: SizedBox.expand(),
+            title: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/icons/app_icon.png',
+                    width: 32,
+                    height: 32,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'お金の貸し借り',
+                  style: TextStyle(
+                    color: Color(0xFF1F1F1F),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
             ),
             actions: [
               Padding(

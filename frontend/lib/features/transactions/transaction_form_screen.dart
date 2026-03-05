@@ -27,7 +27,7 @@ class TransactionFormScreen extends ConsumerStatefulWidget {
 class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   late bool _isLent;
   String? _contactId;
-  String _amountStr = '';
+  final _amountController = TextEditingController();
   final _purposeController = TextEditingController();
   DateTime? _dueDate;
   bool _loading = false;
@@ -42,6 +42,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
   @override
   void dispose() {
+    _amountController.dispose();
     _purposeController.dispose();
     super.dispose();
   }
@@ -54,7 +55,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       setState(() {
         _isLent = t.direction == 'LENT';
         _contactId = t.contactId;
-        _amountStr = '${t.amount}';
+        _amountController.text = '${t.amount}';
         _purposeController.text = t.purpose;
         if (t.dueDate != null && t.dueDate!.isNotEmpty) {
           try {
@@ -125,7 +126,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ShadInput(
-                    key: ValueKey('amount_${_isLent ? "lent" : "borrowed"}_$_amountStr'),
+                    controller: _amountController,
                     cursorColor: accentColor,
                     placeholder: Text(
                       '0',
@@ -137,8 +138,6 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                       ),
                     ),
                     keyboardType: TextInputType.number,
-                    initialValue: _amountStr,
-                    onChanged: (v) => setState(() => _amountStr = v.replaceAll(RegExp(r'[^0-9]'), '')),
                     style: TextStyle(fontSize: 36, fontWeight: FontWeight.w600, color: accentColor, letterSpacing: -0.5),
                     padding: const EdgeInsets.only(left: 6),
                     decoration: const ShadDecoration(
@@ -301,7 +300,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
     await showShadDialog(
       context: context,
       builder: (context) => ShadDialog(
-        title: const Text('新しい相手を登録'),
+        constraints: const BoxConstraints(maxWidth: 340),
+        radius: const BorderRadius.all(Radius.circular(24)),
+        title: const Text('新しい相手を登録', style: TextStyle(fontWeight: FontWeight.w600)),
         description: const Text('やり取りする相手の名前を入力してください。'),
         actions: [
           ShadButton.ghost(
@@ -329,12 +330,20 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             child: const Text('登録する', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
-        child: ShadInput(
-          controller: nameController,
-          placeholder: const Text('例: 田中 太郎'),
-          autofocus: true,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: ShadInput(
+            controller: nameController,
+            placeholder: const Text('例: 田中 太郎'),
+            autofocus: true,
+            cursorColor: accentColor,
+            decoration: ShadDecoration(
+              focusedBorder: ShadBorder.all(color: accentColor),
+            ),
+          ),
         ),
       ),
+
     );
   }
 
@@ -343,7 +352,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('相手を選んでください')));
       return;
     }
-    final amountText = _amountStr.replaceAll(RegExp(r'[^0-9]'), '');
+    final amountText = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
     final amount = int.tryParse(amountText);
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('金額を入力してください')));

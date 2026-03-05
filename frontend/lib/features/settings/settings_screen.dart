@@ -62,11 +62,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 32),
           ShadButton(
             onPressed: _loading ? null : _save,
-            backgroundColor: const Color(0xFFE60012),
+            backgroundColor: const Color(0xFF007AFF),
             size: ShadButtonSize.lg,
+            decoration: ShadDecoration(
+              border: ShadBorder(
+                radius: BorderRadius.circular(30),
+              ),
+            ),
             child: _loading
                 ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('設定を保存する', style: TextStyle(fontWeight: FontWeight.bold)),
+                : const Text('設定を保存する', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
           ),
           if (_saved)
             Padding(
