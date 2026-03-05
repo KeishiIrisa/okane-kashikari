@@ -89,7 +89,7 @@ class _ReminderScreenState extends ConsumerState<ReminderScreen> {
 
   Future<void> _openLine(String message) async {
     final encoded = Uri.encodeComponent(message);
-    final url = Uri.parse('https://line.me/R/msg/text/?$encoded');
+    final url = Uri.parse('https://line.me/R/share?text=$encoded');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
