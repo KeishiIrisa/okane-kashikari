@@ -9,7 +9,13 @@ final goRouter = GoRouter(
   initialLocation: '/',
   routes: [
     GoRoute(path: '/', builder: (_, __) => const DashboardScreen()),
-    GoRoute(path: '/transaction/new', builder: (_, __) => const TransactionFormScreen()),
+    GoRoute(
+      path: '/transaction/new', 
+      builder: (context, state) {
+        final direction = state.uri.queryParameters['direction'];
+        return TransactionFormScreen(initialDirection: direction);
+      },
+    ),
     GoRoute(
       path: '/transaction/:id/edit',
       builder: (context, state) {

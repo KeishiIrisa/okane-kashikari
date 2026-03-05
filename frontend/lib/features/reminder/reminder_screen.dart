@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../data/api_service.dart';
 import '../../data/models.dart';
@@ -39,11 +40,19 @@ class _ReminderScreenState extends ConsumerState<ReminderScreen> {
   Widget build(BuildContext context) {
     final txAsync = ref.watch(transactionDetailProvider(widget.transactionId));
     final defaultMsgAsync = ref.watch(defaultReminderMsgProvider);
+    const accentColor = Color(0xFF007AFF); // 貸しベースの青
 
     return Scaffold(
-      appBar: AppBar(title: const Text('催促メッセージ')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('催促メッセージを送る', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF1F1F1F),
+        elevation: 0,
+      ),
       body: txAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator(color: accentColor)),
         error: (e, _) => Center(child: Text('エラー: $e')),
         data: (tx) {
           if (tx == null) return const Center(child: Text('取引が見つかりません'));
@@ -56,29 +65,61 @@ class _ReminderScreenState extends ConsumerState<ReminderScreen> {
             });
           }
           return Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  '${tx.contactName}さんへのメッセージ（編集可）',
-                  style: Theme.of(context).textTheme.titleSmall,
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: accentColor.withValues(alpha: 0.1),
+                      child: const Icon(LucideIcons.user, color: accentColor, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '${tx.contactName}さんへのメッセージ',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'メッセージ内容（編集できます）',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF737373), fontSize: 13),
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                ShadInput(
                   controller: _messageController,
-                  maxLines: 4,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: '催促文を入力',
+                  maxLines: 6,
+                  placeholder: const Text('催促文を入力'),
+                  padding: const EdgeInsets.all(16),
+                ),
+                const Spacer(),
+                const Text(
+                  '外部アプリで送信します',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xFF737373), fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                ShadButton(
+                  onPressed: () => _openLine(_messageController.text),
+                  backgroundColor: const Color(0xFF06C755), // LINE Color
+                  pressedBackgroundColor: const Color(0xFF05a347), // 少し暗い緑
+                  size: ShadButtonSize.lg,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Image.asset(
+                        'assets/icons/LINE_Brand_icon.png',
+                        width: 24,
+                        height: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('LINE で送る', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 24),
-                FilledButton.icon(
-                  onPressed: () => _openLine(_messageController.text),
-                  icon: const Icon(Icons.chat),
-                  label: const Text('LINE で送る'),
-                ),
               ],
             ),
           );
@@ -96,6 +137,20 @@ class _ReminderScreenState extends ConsumerState<ReminderScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('LINE を開けませんでした')),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareMessage(String message) async {
+    final encoded = Uri.encodeComponent(message);
+    final url = Uri.parse('sms:?&body=$encoded');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('アプリを開けませんでした')),
         );
       }
     }

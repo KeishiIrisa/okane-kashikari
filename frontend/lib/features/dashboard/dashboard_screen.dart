@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../data/api_service.dart';
 import '../../data/models.dart';
@@ -25,131 +25,237 @@ final borrowedListProvider = FutureProvider<List<TransactionItem>>((ref) async {
   return api.getTransactions(direction: 'BORROWED', status: 'unpaid');
 });
 
-/// 通知などから「借りリスト」タブを開きたい時に使う
-final selectedDirectionProvider = StateProvider<String>((ref) => 'LENT');
+final selectedTabProvider = StateProvider<String>((ref) => 'LENT');
 
-class DashboardScreen extends ConsumerStatefulWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
-  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
-}
-
-class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final selectedDirection = ref.watch(selectedDirectionProvider);
-    if (selectedDirection == 'BORROWED' && _tabController.index != 1) {
-      _tabController.index = 1;
-    } else if (selectedDirection == 'LENT' && _tabController.index != 0) {
-      _tabController.index = 0;
-    }
-
+  Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(summaryProvider);
+    final selectedTab = ref.watch(selectedTabProvider);
+    
+    // カラー設定
+    const lentColor = Color(0xFF007AFF); // 貸し: 青
+    const borrowedColor = Color(0xFFEF4444); // 借り: 赤
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('お金貸し借り'),
-        actions: [
-          IconButton(icon: const Icon(Icons.settings), onPressed: () => context.push('/settings')),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: '貸しリスト'),
-            Tab(text: '借りリスト'),
-          ],
-        ),
-      ),
-      body: summaryAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('エラー: $e')),
-        data: (summary) {
-          return Column(
-            children: [
+      backgroundColor: Colors.white,
+      body: CustomScrollView(
+        slivers: [
+          // 白基調のヘッダー
+          SliverAppBar(
+            expandedHeight: 60,
+            toolbarHeight: 60,
+            floating: false,
+            pinned: true,
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            elevation: 0,
+            flexibleSpace: const FlexibleSpaceBar(
+              background: SizedBox.expand(),
+            ),
+            actions: [
               Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _SummaryCard(
-                        title: '貸している合計（＋）',
-                        amount: summary.totalLentUnpaid,
-                        color: const Color(0xFF1976D2),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _SummaryCard(
-                        title: '借りている合計（ー）',
-                        amount: summary.totalBorrowedUnpaid,
-                        color: const Color(0xFFE65100),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _TransactionList(direction: 'LENT'),
-                    _TransactionList(direction: 'BORROWED'),
-                  ],
+                padding: const EdgeInsets.only(right: 8),
+                child: ShadButton.ghost(
+                  onPressed: () => context.push('/settings'),
+                  child: Icon(LucideIcons.settings, color: Color(0xFF1F1F1F), size: 22),
                 ),
               ),
             ],
-          );
-        },
+          ),
+
+          SliverToBoxAdapter(
+            child: summaryAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(child: CircularProgressIndicator(color: lentColor)),
+              ),
+              error: (e, _) => Center(child: Text('エラー: $e')),
+              data: (summary) {
+                return Column(
+                  children: [
+                    // サマリーカードセクション
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _SummaryCard(
+                              title: '貸している',
+                              amount: summary.totalLentUnpaid,
+                              icon: LucideIcons.arrowUpRight,
+                              color: lentColor,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _SummaryCard(
+                              title: '借りている',
+                              amount: summary.totalBorrowedUnpaid,
+                              icon: LucideIcons.arrowDownLeft,
+                              color: borrowedColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // タブ切り替え（貸し＝青、借り＝赤）
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        padding: const EdgeInsets.all(4),
+                        child: Row(
+                          children: [
+                            _TabButton(
+                              label: '貸しリスト',
+                              value: 'LENT',
+                              isSelected: selectedTab == 'LENT',
+                              activeColor: lentColor,
+                              onPressed: () => ref.read(selectedTabProvider.notifier).state = 'LENT',
+                            ),
+                            _TabButton(
+                              label: '借りリスト',
+                              value: 'BORROWED',
+                              isSelected: selectedTab == 'BORROWED',
+                              activeColor: borrowedColor,
+                              onPressed: () => ref.read(selectedTabProvider.notifier).state = 'BORROWED',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    _TransactionList(direction: selectedTab),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/transaction/new'),
-        child: const Icon(Icons.add),
+      floatingActionButton: SizedBox(
+        width: 60,
+        height: 60,
+        child: ShadButton(
+          padding: EdgeInsets.zero,
+          onPressed: () => context.push('/transaction/new?direction=$selectedTab'),
+          backgroundColor: selectedTab == 'LENT' ? lentColor : borrowedColor,
+          decoration: ShadDecoration(
+            border: ShadBorder(
+              radius: BorderRadius.circular(30),
+            ),
+          ),
+          child: const Icon(LucideIcons.plus, size: 32, color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  const _TabButton({
+    required this.label,
+    required this.value,
+    required this.isSelected,
+    required this.activeColor,
+    required this.onPressed,
+  });
+
+  final String label;
+  final String value;
+  final bool isSelected;
+  final Color activeColor;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? activeColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(100),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : const Color(0xFF737373),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.title, required this.amount, required this.color});
+  const _SummaryCard({
+    required this.title,
+    required this.amount,
+    required this.icon,
+    required this.color,
+  });
 
   final String title;
   final int amount;
+  final IconData icon;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      color: color.withOpacity(0.12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(title, style: TextStyle(fontSize: 12, color: color.withOpacity(0.9))),
-            const SizedBox(height: 8),
-            Text(
-              '¥${NumberFormat('#,###').format(amount)}',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
+    return ShadCard(
+      padding: const EdgeInsets.all(20),
+      radius: const BorderRadius.all(Radius.circular(28)),
+      backgroundColor: Colors.white,
+      border: ShadBorder.all(color: color.withValues(alpha: 0.15), width: 1),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 14, color: color),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF737373),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '¥${NumberFormat('#,###').format(amount)}',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: color,
+              letterSpacing: -0.5,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -164,20 +270,40 @@ class _TransactionList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final provider = direction == 'LENT' ? lentListProvider : borrowedListProvider;
     final async = ref.watch(provider);
+    final accentColor = direction == 'LENT' ? const Color(0xFF007AFF) : const Color(0xFFEF4444);
 
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(48),
+          child: CircularProgressIndicator(color: accentColor),
+        ),
+      ),
       error: (e, _) => Center(child: Text('エラー: $e')),
       data: (list) {
         if (list.isEmpty) {
-          return Center(child: Text('$direction の未精算はありません'));
+          return Padding(
+            padding: const EdgeInsets.all(64.0),
+            child: Column(
+              children: [
+                Icon(LucideIcons.fileX, size: 48, color: Colors.grey.shade200),
+                const SizedBox(height: 16),
+                Text(
+                  '未精算はありません',
+                  style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          );
         }
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: list.length,
           itemBuilder: (context, i) {
             final t = list[i];
-            return _TransactionTile(transaction: t);
+            return _TransactionTile(transaction: t, accentColor: accentColor);
           },
         );
       },
@@ -186,9 +312,10 @@ class _TransactionList extends ConsumerWidget {
 }
 
 class _TransactionTile extends ConsumerWidget {
-  const _TransactionTile({required this.transaction});
+  const _TransactionTile({required this.transaction, required this.accentColor});
 
   final TransactionItem transaction;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -197,55 +324,164 @@ class _TransactionTile extends ConsumerWidget {
         ? _formatDate(transaction.dueDate!)
         : '期日なし';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        title: Text(transaction.contactName),
-        subtitle: Text('${transaction.purpose} · $dueStr'),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '¥${NumberFormat('#,###').format(transaction.amount)}',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: isLent ? const Color(0xFF1976D2) : const Color(0xFFE65100),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ShadCard(
+        padding: EdgeInsets.zero,
+        radius: const BorderRadius.all(Radius.circular(24)),
+        border: ShadBorder.all(color: const Color(0xFFF0F0F0), width: 1),
+        backgroundColor: Colors.white,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              isLent ? LucideIcons.arrowUpRight : LucideIcons.arrowDownLeft,
+              color: accentColor,
+              size: 20,
+            ),
+          ),
+          title: Text(
+            transaction.contactName,
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+          ),
+          subtitle: Text(
+            '${transaction.purpose} · $dueStr',
+            style: const TextStyle(color: Color(0xFF737373), fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '¥${NumberFormat('#,###').format(transaction.amount)}',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: accentColor,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
-            PopupMenuButton<String>(
-              onSelected: (value) async {
-                if (value == 'edit') {
-                  context.push('/transaction/${transaction.id}/edit');
-                } else if (value == 'paid') {
-                  final dio = await ref.read(apiClientProvider.future);
-                  final api = ApiService(dio);
-                  await api.markTransactionPaid(transaction.id);
-                  ref.invalidate(summaryProvider);
-                  ref.invalidate(lentListProvider);
-                  ref.invalidate(borrowedListProvider);
-                  if (context.mounted) context.go('/');
-                } else if (value == 'reminder' && isLent) {
-                  context.push('/transaction/${transaction.id}/reminder');
-                }
-              },
-              itemBuilder: (_) => [
-                const PopupMenuItem(value: 'edit', child: Text('編集')),
-                const PopupMenuItem(value: 'paid', child: Text('精算済みにする')),
-                if (isLent) const PopupMenuItem(value: 'reminder', child: Text('催促')),
-              ],
-            ),
-          ],
+              const SizedBox(width: 4),
+              ShadButton.ghost(
+                size: ShadButtonSize.sm,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                onPressed: () {
+                  _showActionSheet(context, ref, transaction, accentColor);
+                },
+                child: const Icon(LucideIcons.ellipsis, size: 20, color: Color(0xFF737373)),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  void _showActionSheet(BuildContext context, WidgetRef ref, TransactionItem transaction, Color accentColor) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (context) {
+        final isLent = transaction.direction == 'LENT';
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                _ActionTile(
+                  icon: LucideIcons.pencil,
+                  label: '内容を編集する',
+                  onTap: () {
+                    context.pop();
+                    context.push('/transaction/${transaction.id}/edit');
+                  },
+                ),
+                const SizedBox(height: 8),
+                _ActionTile(
+                  icon: LucideIcons.circleCheck,
+                  label: '精算済みにする',
+                  accentColor: accentColor,
+                  onTap: () async {
+                    context.pop();
+                    final dio = await ref.read(apiClientProvider.future);
+                    final api = ApiService(dio);
+                    await api.markTransactionPaid(transaction.id);
+                    ref.invalidate(summaryProvider);
+                    ref.invalidate(lentListProvider);
+                    ref.invalidate(borrowedListProvider);
+                  },
+                ),
+                if (isLent) ...[
+                  const SizedBox(height: 8),
+                  _ActionTile(
+                    icon: LucideIcons.bell,
+                    label: 'LINEで催促する',
+                    accentColor: accentColor,
+                    onTap: () {
+                      context.pop();
+                      context.push('/transaction/${transaction.id}/reminder');
+                    },
+                  ),
+                ],
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
   static String _formatDate(String iso) {
     try {
       final d = DateTime.parse(iso);
-      return DateFormat('M/d').format(d);
+      return DateFormat('M月d日').format(d);
     } catch (_) {
       return iso;
     }
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({required this.icon, required this.label, required this.onTap, this.accentColor});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: (accentColor ?? const Color(0xFF1F1F1F)).withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: accentColor ?? const Color(0xFF1F1F1F), size: 20),
+      ),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+      trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      tileColor: const Color(0xFFF9F9F9),
+    );
   }
 }

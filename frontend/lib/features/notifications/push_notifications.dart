@@ -59,7 +59,7 @@ Future<void> _handleNotificationTap(WidgetRef ref, RemoteMessage message) async 
   }
 
   // BORROWED などその他はアプリのダッシュボード画面へ遷移し、「借りリスト」タブを選択
-  ref.read(selectedDirectionProvider.notifier).state = 'BORROWED';
+  ref.read(selectedTabProvider.notifier).state = 'BORROWED';
   goRouter.go('/');
 }
 

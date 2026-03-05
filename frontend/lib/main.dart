@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'app.dart';
 import 'features/authless_device/device_id_provider.dart';
@@ -37,21 +38,21 @@ class OkaneKashikariApp extends ConsumerWidget {
 
     final deviceIdAsync = ref.watch(deviceIdProvider);
     return deviceIdAsync.when(
-      loading: () => MaterialApp(
+      loading: () => const ShadApp(
         home: Scaffold(
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text('準備中...', style: Theme.of(context).textTheme.bodyLarge),
+                CircularProgressIndicator(color: Color(0xFF007AFF)),
+                SizedBox(height: 16),
+                Text('準備中...', style: TextStyle(fontWeight: FontWeight.w600)),
               ],
             ),
           ),
         ),
       ),
-      error: (e, _) => MaterialApp(
+      error: (e, _) => ShadApp(
         home: Scaffold(
           body: Center(child: Text('エラー: $e')),
         ),
