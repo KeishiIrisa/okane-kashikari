@@ -41,6 +41,4 @@ jobs:
             --platform managed \
             --region ${{ env.REGION }} \
             --allow-unauthenticated \
-            --set-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
-            --set-env-vars "FCM_CREDENTIALS_JSON=${{ secrets.FCM_CREDENTIALS_JSON }}" \
-            --set-env-vars "BATCH_SECRET=${{ secrets.BATCH_SECRET }}"
+            --set-env-vars "^|^DATABASE_URL=${{ secrets.DATABASE_URL }}|FCM_CREDENTIALS_JSON=${{ secrets.FCM_CREDENTIALS_JSON }}|BATCH_SECRET=${{ secrets.BATCH_SECRET }}"
