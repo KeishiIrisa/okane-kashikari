@@ -4,6 +4,8 @@
 .env.*.local
 frontend/.env.dev
 frontend/.env.prod
+frontend/android/key.properties
+frontend/android/app/key.properties
 
 # OS
 .DS_Store
