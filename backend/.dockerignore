@@ -1,0 +1,9 @@
+.git
+.DS_Store
+bin
+tmp
+*.log
+**/*.test
+**/.idea
+**/.vscode
+
