@@ -35,10 +35,14 @@ jobs:
           gcloud builds submit --tag gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }} --quiet
 
       - name: Deploy to Cloud Run
+        env:
+          DB_URL: ${{ secrets.DATABASE_URL }}
+          FCM_JSON: ${{ secrets.FCM_CREDENTIALS_JSON }}
+          B_SECRET: ${{ secrets.BATCH_SECRET }}
         run: |
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }} \
             --platform managed \
             --region ${{ env.REGION }} \
             --allow-unauthenticated \
-            --set-env-vars "^|^DATABASE_URL=${{ secrets.DATABASE_URL }}|FCM_CREDENTIALS_JSON=${{ secrets.FCM_CREDENTIALS_JSON }}|BATCH_SECRET=${{ secrets.BATCH_SECRET }}"
+            --set-env-vars "DATABASE_URL=$DB_URL,FCM_CREDENTIALS_JSON=$FCM_JSON,BATCH_SECRET=$B_SECRET"
