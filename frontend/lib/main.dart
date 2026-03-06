@@ -1,15 +1,17 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'app.dart';
 import 'features/authless_device/device_id_provider.dart';
 import 'features/notifications/push_notifications.dart';
+import 'core/flavor_config.dart';
 
-Future<void> main() async {
+Future<void> initializeApp(FlavorConfig config) async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Firebase 設定(values.xml 等)がない環境でもクラッシュしないようにする
+  
   try {
     await Firebase.initializeApp();
   } catch (_) {
@@ -17,19 +19,18 @@ Future<void> main() async {
   }
 
   runApp(
-    const ProviderScope(
-      child: OkaneKashikariApp(),
+    ProviderScope(
+      child: OkaneKashikariApp(title: config.appTitle),
     ),
   );
 }
 
-/// deviceId が確定してからダッシュボードを表示するラッパー
 class OkaneKashikariApp extends ConsumerWidget {
-  const OkaneKashikariApp({super.key});
+  final String title;
+  const OkaneKashikariApp({super.key, required this.title});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // deviceId が確定し、かつ Firebase が初期化されている場合のみプッシュ通知初期化を行う
     ref.listen(deviceIdProvider, (previous, next) async {
       if (next is AsyncData && Firebase.apps.isNotEmpty) {
         await initPushNotifications(ref);
@@ -38,8 +39,9 @@ class OkaneKashikariApp extends ConsumerWidget {
 
     final deviceIdAsync = ref.watch(deviceIdProvider);
     return deviceIdAsync.when(
-      loading: () => const ShadApp(
-        home: Scaffold(
+      loading: () => ShadApp(
+        title: title,
+        home: const Scaffold(
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -53,6 +55,7 @@ class OkaneKashikariApp extends ConsumerWidget {
         ),
       ),
       error: (e, _) => ShadApp(
+        title: title,
         home: Scaffold(
           body: Center(child: Text('エラー: $e')),
         ),

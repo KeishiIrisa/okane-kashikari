@@ -2,6 +2,8 @@
 .env
 .env.local
 .env.*.local
+frontend/.env.dev
+frontend/.env.prod
 
 # OS
 .DS_Store
