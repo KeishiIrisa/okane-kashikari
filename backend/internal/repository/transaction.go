@@ -106,11 +106,14 @@ func (r *Repository) GetTransaction(ctx context.Context, id, ownerID uuid.UUID) 
 	return &t, nil
 }
 
-func (r *Repository) UpdateTransaction(ctx context.Context, id, ownerID uuid.UUID, amount *int, purpose *string, dueDate *time.Time, status string) error {
+func (r *Repository) UpdateTransaction(ctx context.Context, id, ownerID uuid.UUID, contactID *uuid.UUID, amount *int, purpose *string, dueDate *time.Time, status string) error {
 	if r.db == nil {
 		return nil
 	}
 	updates := map[string]interface{}{}
+	if contactID != nil {
+		updates["contact_id"] = *contactID
+	}
 	if amount != nil {
 		updates["amount"] = *amount
 	}
@@ -156,7 +159,7 @@ func (r *Repository) DeleteTransaction(ctx context.Context, id, ownerID uuid.UUI
 }
 
 func (r *Repository) MarkTransactionPaid(ctx context.Context, id, ownerID uuid.UUID) error {
-	return r.UpdateTransaction(ctx, id, ownerID, nil, nil, nil, "paid")
+	return r.UpdateTransaction(ctx, id, ownerID, nil, nil, nil, nil, "paid")
 }
 
 // ListTransactionsDueToday は due_date が「今日」(UTC 日付) かつ status=unpaid の取引を返す（バッチ用）

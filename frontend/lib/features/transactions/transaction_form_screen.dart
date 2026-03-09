@@ -483,6 +483,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       if (widget.transactionId != null) {
         await api.updateTransaction(
           widget.transactionId!,
+          contactId: _contactId,
           amount: amount,
           purpose: _purposeController.text.trim(),
           dueDate: dueDateStr,

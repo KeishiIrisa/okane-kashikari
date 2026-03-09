@@ -75,8 +75,9 @@ class ApiService {
     return r.data?['id'] as String? ?? '';
   }
 
-  Future<void> updateTransaction(String id, {int? amount, String? purpose, String? dueDate, String? status}) async {
+  Future<void> updateTransaction(String id, {String? contactId, int? amount, String? purpose, String? dueDate, String? status}) async {
     final data = <String, dynamic>{};
+    if (contactId != null) data['contact_id'] = contactId;
     if (amount != null) data['amount'] = amount;
     if (purpose != null) data['purpose'] = purpose;
     if (dueDate != null) data['due_date'] = dueDate;
