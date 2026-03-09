@@ -75,11 +75,15 @@ class DashboardScreen extends ConsumerWidget {
               ],
             ),
             actions: [
+              ShadButton.ghost(
+                onPressed: () => context.push('/history'),
+                child: const Icon(LucideIcons.history, color: Color(0xFF1F1F1F), size: 22),
+              ),
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: ShadButton.ghost(
                   onPressed: () => context.push('/settings'),
-                  child: Icon(LucideIcons.settings, color: Color(0xFF1F1F1F), size: 22),
+                  child: const Icon(LucideIcons.settings, color: Color(0xFF1F1F1F), size: 22),
                 ),
               ),
             ],
