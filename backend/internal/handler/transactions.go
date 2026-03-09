@@ -111,16 +111,26 @@ func (h *Transactions) Update(c *gin.Context) {
 		return
 	}
 	var body struct {
-		Amount   *int    `json:"amount"`
-		Purpose  string  `json:"purpose"`
-		DueDate  *string `json:"due_date"`
-		Status   string  `json:"status"`
+		ContactID string  `json:"contact_id"`
+		Amount    *int    `json:"amount"`
+		Purpose   string  `json:"purpose"`
+		DueDate   *string `json:"due_date"`
+		Status    string  `json:"status"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	deviceID := middleware.GetDeviceID(c)
+	var contactID *uuid.UUID
+	if body.ContactID != "" {
+		cid, err := uuid.Parse(body.ContactID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid contact_id"})
+			return
+		}
+		contactID = &cid
+	}
 	var dueDate *time.Time
 	if body.DueDate != nil && *body.DueDate != "" {
 		t, err := time.Parse(time.RFC3339, *body.DueDate)
@@ -134,7 +144,7 @@ func (h *Transactions) Update(c *gin.Context) {
 		p := body.Purpose
 		purpose = &p
 	}
-	if err := h.repo.UpdateTransaction(c.Request.Context(), id, deviceID, body.Amount, purpose, dueDate, body.Status); err != nil {
+	if err := h.repo.UpdateTransaction(c.Request.Context(), id, deviceID, contactID, body.Amount, purpose, dueDate, body.Status); err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "transaction not found"})
 			return
