@@ -61,7 +61,7 @@ func (h *Transactions) Create(c *gin.Context) {
 	var body struct {
 		ContactID string  `json:"contact_id" binding:"required"`
 		Amount    int     `json:"amount" binding:"required,gt=0"`
-		Purpose   string  `json:"purpose" binding:"required"`
+		Purpose   string  `json:"purpose"`
 		Direction string  `json:"direction" binding:"required,oneof=LENT BORROWED"`
 		DueDate   *string `json:"due_date"`
 	}
@@ -87,7 +87,12 @@ func (h *Transactions) Create(c *gin.Context) {
 		}
 		dueDate = &t
 	}
-	id, err := h.repo.CreateTransaction(c.Request.Context(), deviceID, contactID, body.Amount, body.Purpose, body.Direction, dueDate)
+	var purpose *string
+	if body.Purpose != "" {
+		p := body.Purpose
+		purpose = &p
+	}
+	id, err := h.repo.CreateTransaction(c.Request.Context(), deviceID, contactID, body.Amount, purpose, body.Direction, dueDate)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create transaction"})
 		return
@@ -124,7 +129,12 @@ func (h *Transactions) Update(c *gin.Context) {
 		}
 		dueDate = &t
 	}
-	if err := h.repo.UpdateTransaction(c.Request.Context(), id, deviceID, body.Amount, body.Purpose, dueDate, body.Status); err != nil {
+	var purpose *string
+	if body.Purpose != "" {
+		p := body.Purpose
+		purpose = &p
+	}
+	if err := h.repo.UpdateTransaction(c.Request.Context(), id, deviceID, body.Amount, purpose, dueDate, body.Status); err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "transaction not found"})
 			return

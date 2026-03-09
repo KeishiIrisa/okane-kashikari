@@ -32,7 +32,7 @@ type Transaction struct {
 	OwnerID   uuid.UUID  `gorm:"type:uuid;not null;index"`
 	ContactID uuid.UUID  `gorm:"type:uuid;not null;index"`
 	Amount    int        `gorm:"not null"`
-	Purpose   string     `gorm:"not null"`
+	Purpose   *string    `gorm:""`
 	Direction string     `gorm:"not null"`
 	DueDate   *time.Time `gorm:""`
 	Status    string     `gorm:"not null;default:unpaid"`

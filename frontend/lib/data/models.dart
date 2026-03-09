@@ -47,7 +47,7 @@ class TransactionItem {
       contactId: json['contact_id'] as String,
       contactName: json['contact_name'] as String? ?? '',
       amount: (json['amount'] as num).toInt(),
-      purpose: json['purpose'] as String,
+      purpose: json['purpose'] as String? ?? '',
       direction: json['direction'] as String,
       dueDate: json['due_date'] as String?,
       status: json['status'] as String? ?? 'unpaid',

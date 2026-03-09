@@ -339,9 +339,6 @@ class _TransactionTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLent = transaction.direction == 'LENT';
-    final dueStr = transaction.dueDate != null && transaction.dueDate!.isNotEmpty
-        ? _formatDate(transaction.dueDate!)
-        : '期日なし';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -369,7 +366,13 @@ class _TransactionTile extends ConsumerWidget {
             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
           ),
           subtitle: Text(
-            '${transaction.purpose} · $dueStr',
+            [
+              if (transaction.purpose.isNotEmpty) transaction.purpose,
+              if (transaction.dueDate != null && transaction.dueDate!.isNotEmpty)
+                _formatDate(transaction.dueDate!)
+              else
+                '期日なし'
+            ].join(' · '),
             style: const TextStyle(color: Color(0xFF737373), fontSize: 13, fontWeight: FontWeight.w500),
           ),
           trailing: Row(

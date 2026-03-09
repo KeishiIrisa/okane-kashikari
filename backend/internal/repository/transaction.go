@@ -15,7 +15,7 @@ type TransactionWithContact struct {
 	OwnerID     uuid.UUID  `json:"owner_id"`
 	ContactID   uuid.UUID  `json:"contact_id"`
 	Amount      int        `json:"amount"`
-	Purpose     string     `json:"purpose"`
+	Purpose     *string    `json:"purpose"`
 	Direction   string     `json:"direction"`
 	DueDate     *time.Time `json:"due_date"`
 	Status      string     `json:"status"`
@@ -49,7 +49,7 @@ func (r *Repository) ListTransactions(ctx context.Context, ownerID uuid.UUID, di
 	return list, nil
 }
 
-func (r *Repository) CreateTransaction(ctx context.Context, ownerID, contactID uuid.UUID, amount int, purpose, direction string, dueDate *time.Time) (uuid.UUID, error) {
+func (r *Repository) CreateTransaction(ctx context.Context, ownerID, contactID uuid.UUID, amount int, purpose *string, direction string, dueDate *time.Time) (uuid.UUID, error) {
 	if r.db == nil {
 		return uuid.New(), nil
 	}
@@ -81,7 +81,7 @@ func (r *Repository) GetTransaction(ctx context.Context, id, ownerID uuid.UUID) 
 	return &t, nil
 }
 
-func (r *Repository) UpdateTransaction(ctx context.Context, id, ownerID uuid.UUID, amount *int, purpose string, dueDate *time.Time, status string) error {
+func (r *Repository) UpdateTransaction(ctx context.Context, id, ownerID uuid.UUID, amount *int, purpose *string, dueDate *time.Time, status string) error {
 	if r.db == nil {
 		return nil
 	}
@@ -89,13 +89,15 @@ func (r *Repository) UpdateTransaction(ctx context.Context, id, ownerID uuid.UUI
 	if amount != nil {
 		updates["amount"] = *amount
 	}
-	if purpose != "" {
-		updates["purpose"] = purpose
+	if purpose != nil {
+		updates["purpose"] = *purpose
+	} else if status == "" {
+		updates["purpose"] = nil
 	}
 	if dueDate != nil {
 		updates["due_date"] = dueDate
 	} else if status == "" {
-		// allow clearing due_date when doing full update
+		// allow clearing due_date when doing full update (not just status change)
 		updates["due_date"] = nil
 	}
 	if status != "" {
@@ -129,7 +131,7 @@ func (r *Repository) DeleteTransaction(ctx context.Context, id, ownerID uuid.UUI
 }
 
 func (r *Repository) MarkTransactionPaid(ctx context.Context, id, ownerID uuid.UUID) error {
-	return r.UpdateTransaction(ctx, id, ownerID, nil, "", nil, "paid")
+	return r.UpdateTransaction(ctx, id, ownerID, nil, nil, nil, "paid")
 }
 
 // ListTransactionsDueToday は due_date が「今日」(UTC 日付) かつ status=unpaid の取引を返す（バッチ用）

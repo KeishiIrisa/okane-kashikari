@@ -15,13 +15,18 @@ final contactsListProvider = FutureProvider<List<ContactItem>>((ref) async {
 });
 
 class TransactionFormScreen extends ConsumerStatefulWidget {
-  const TransactionFormScreen({super.key, this.transactionId, this.initialDirection});
+  const TransactionFormScreen({
+    super.key,
+    this.transactionId,
+    this.initialDirection,
+  });
 
   final String? transactionId;
   final String? initialDirection;
 
   @override
-  ConsumerState<TransactionFormScreen> createState() => _TransactionFormScreenState();
+  ConsumerState<TransactionFormScreen> createState() =>
+      _TransactionFormScreenState();
 }
 
 class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
@@ -69,13 +74,21 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   @override
   Widget build(BuildContext context) {
     final contactsAsync = ref.watch(contactsListProvider);
-    final accentColor = _isLent ? const Color(0xFF007AFF) : const Color(0xFFEF4444);
+    final accentColor = _isLent
+        ? const Color(0xFF007AFF)
+        : const Color(0xFFEF4444);
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.transactionId == null ? '新しく登録する' : '編集する', 
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF1F1F1F))),
+        title: Text(
+          widget.transactionId == null ? '新しく登録する' : '編集する',
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            color: Color(0xFF1F1F1F),
+          ),
+        ),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1F1F1F),
@@ -117,12 +130,26 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             const SizedBox(height: 40),
 
             // 金額入力
-            const Text('金額', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF737373), fontSize: 13)),
+            const Text(
+              '金額',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF737373),
+                fontSize: 13,
+              ),
+            ),
             const SizedBox(height: 8),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text('¥', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: accentColor)),
+                Text(
+                  '¥',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: accentColor,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: ShadInput(
@@ -138,7 +165,12 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                       ),
                     ),
                     keyboardType: TextInputType.number,
-                    style: TextStyle(fontSize: 36, fontWeight: FontWeight.w600, color: accentColor, letterSpacing: -0.5),
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w600,
+                      color: accentColor,
+                      letterSpacing: -0.5,
+                    ),
                     padding: const EdgeInsets.only(left: 6),
                     decoration: const ShadDecoration(
                       border: ShadBorder.none,
@@ -151,10 +183,21 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             Divider(height: 40, color: accentColor.withValues(alpha: 0.1)),
 
             // 相手
-            const Text('相手', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF737373), fontSize: 13)),
+            const Text(
+              '相手',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF737373),
+                fontSize: 13,
+              ),
+            ),
             const SizedBox(height: 12),
             contactsAsync.when(
-              loading: () => const ShadInput(placeholder: Text('読み込み中...'), readOnly: true, decoration: ShadDecoration(border: ShadBorder.none)),
+              loading: () => const ShadInput(
+                placeholder: Text('読み込み中...'),
+                readOnly: true,
+                decoration: ShadDecoration(border: ShadBorder.none),
+              ),
               error: (e, _) => Text('読み込みエラー: $e'),
               data: (contacts) {
                 return Column(
@@ -162,21 +205,28 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                     ShadSelect<String>(
                       placeholder: const Row(
                         mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Text('相手を選択してください'),
-                        ],
+                        children: [Text('相手を選択してください')],
                       ),
                       onChanged: (v) => setState(() => _contactId = v),
                       initialValue: _contactId,
                       options: [
-                        ...contacts.map((c) => ShadOption(value: c.id, child: Text(c.name))),
+                        ...contacts.map(
+                          (c) => ShadOption(value: c.id, child: Text(c.name)),
+                        ),
                       ],
                       selectedOptionBuilder: (context, value) {
-                        final contact = contacts.where((c) => c.id == value).firstOrNull;
+                        final contact = contacts
+                            .where((c) => c.id == value)
+                            .firstOrNull;
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                            Text(contact?.name ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            Text(
+                              contact?.name ?? '',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ],
                         );
                       },
@@ -193,9 +243,19 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(LucideIcons.circlePlus, size: 16, color: accentColor),
+                            Icon(
+                              LucideIcons.circlePlus,
+                              size: 16,
+                              color: accentColor,
+                            ),
                             const SizedBox(width: 6),
-                            Text('新しい相手を追加する', style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+                            Text(
+                              '新しい相手を追加する',
+                              style: TextStyle(
+                                color: accentColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -207,7 +267,14 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             const SizedBox(height: 24),
 
             // 内容
-            const Text('内容', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF737373), fontSize: 13)),
+            const Text(
+              '内容',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF737373),
+                fontSize: 13,
+              ),
+            ),
             const SizedBox(height: 12),
             ShadInput(
               controller: _purposeController,
@@ -225,7 +292,14 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
             const SizedBox(height: 32),
 
             // 期日
-            const Text('返済期日', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF737373), fontSize: 13)),
+            const Text(
+              '返済期日',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF737373),
+                fontSize: 13,
+              ),
+            ),
             const SizedBox(height: 12),
             GestureDetector(
               onTap: () async {
@@ -238,9 +312,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                   builder: (context, child) {
                     return Theme(
                       data: Theme.of(context).copyWith(
-                        colorScheme: ColorScheme.light(
-                          primary: accentColor,
-                        ),
+                        colorScheme: ColorScheme.light(primary: accentColor),
                       ),
                       child: child!,
                     );
@@ -260,17 +332,27 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                     Icon(LucideIcons.calendar, size: 18, color: accentColor),
                     const SizedBox(width: 12),
                     Text(
-                      _dueDate != null ? DateFormat('yyyy年M月d日').format(_dueDate!) : '期限を決めない',
+                      _dueDate != null
+                          ? DateFormat('yyyy年M月d日').format(_dueDate!)
+                          : '期限を決めない',
                       style: TextStyle(
-                        color: _dueDate != null ? const Color(0xFF1F1F1F) : const Color(0xFF737373),
-                        fontWeight: _dueDate != null ? FontWeight.w600 : FontWeight.bold,
+                        color: _dueDate != null
+                            ? const Color(0xFF1F1F1F)
+                            : const Color(0xFF737373),
+                        fontWeight: _dueDate != null
+                            ? FontWeight.w600
+                            : FontWeight.bold,
                       ),
                     ),
                     const Spacer(),
                     if (_dueDate != null)
                       GestureDetector(
                         onTap: () => setState(() => _dueDate = null),
-                        child: Icon(LucideIcons.x, size: 16, color: Colors.grey.shade400),
+                        child: Icon(
+                          LucideIcons.x,
+                          size: 16,
+                          color: Colors.grey.shade400,
+                        ),
                       ),
                   ],
                 ),
@@ -283,9 +365,23 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               size: ShadButtonSize.lg,
               onPressed: _loading ? null : _submit,
               backgroundColor: accentColor,
-              child: _loading 
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
-                : const Text('この内容で登録する', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white)),
+              child: _loading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'この内容で登録する',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
             ),
           ],
         ),
@@ -295,14 +391,19 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
 
   Future<void> _showNewContactDialog(WidgetRef ref) async {
     final nameController = TextEditingController();
-    final accentColor = _isLent ? const Color(0xFF007AFF) : const Color(0xFFEF4444);
+    final accentColor = _isLent
+        ? const Color(0xFF007AFF)
+        : const Color(0xFFEF4444);
 
     await showShadDialog(
       context: context,
       builder: (context) => ShadDialog(
         constraints: const BoxConstraints(maxWidth: 340),
         radius: const BorderRadius.all(Radius.circular(24)),
-        title: const Text('新しい相手を登録', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          '新しい相手を登録',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         description: const Text('やり取りする相手の名前を入力してください。'),
         actions: [
           ShadButton.ghost(
@@ -323,11 +424,19 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 if (context.mounted) Navigator.pop(context);
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('追加に失敗: $e')));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('追加に失敗: $e')));
                 }
               }
             },
-            child: const Text('登録する', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              '登録する',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
         child: Padding(
@@ -343,23 +452,22 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
           ),
         ),
       ),
-
     );
   }
 
   Future<void> _submit() async {
     if (_contactId == null || _contactId!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('相手を選んでください')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('相手を選んでください')));
       return;
     }
     final amountText = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
     final amount = int.tryParse(amountText);
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('金額を入力してください')));
-      return;
-    }
-    if (_purposeController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('内容を入力してください')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('金額を入力してください')));
       return;
     }
     setState(() => _loading = true);
@@ -369,7 +477,8 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       final direction = _isLent ? 'LENT' : 'BORROWED';
       String? dueDateStr;
       if (_dueDate != null) {
-        dueDateStr = '${_dueDate!.toIso8601String().split('T')[0]}T00:00:00.000Z';
+        dueDateStr =
+            '${_dueDate!.toIso8601String().split('T')[0]}T00:00:00.000Z';
       }
       if (widget.transactionId != null) {
         await api.updateTransaction(
@@ -398,11 +507,14 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
           const SnackBar(
             backgroundColor: Color(0xFF1F1F1F),
             content: Text('保存しました'),
-          )
+          ),
         );
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('エラー: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('エラー: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
