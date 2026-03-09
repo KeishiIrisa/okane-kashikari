@@ -68,11 +68,13 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#ffffff"
-  image: "assets/icons/app_icon.png"
+  image: "assets/icons/splash_icon.png"
   android_12:
     color: "#ffffff"
-    image: "assets/icons/app_icon.png"
+    image: "assets/icons/splash_icon.png"
   ios: true
+  android_gravity: center
+  ios_content_mode: center
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

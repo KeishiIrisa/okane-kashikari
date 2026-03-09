@@ -12,6 +12,8 @@ help:
 	@echo "  make run-server    - Start server with Docker Compose (foreground)"
 	@echo "  run-server-bg - Start server with Docker Compose (background)"
 	@echo "  db-shell      - Connect to PostgreSQL shell inside Docker"
+	@echo "  generate-icons - Generate app icons from assets/icons/app_icon.png"
+	@echo "  generate-splash - Generate splash screens from assets/icons/splash_icon.png"
 	@echo "  build-prod    - Build production App Bundle (.aab) for Google Play"
 	@echo "  make build-apk     - Build production APK (.apk) for direct install"
 	@echo "  make reverse       - Setup Android port forwarding (8080)"
@@ -48,6 +50,14 @@ run-server-bg:
 # Connect to the database shell
 db-shell:
 	docker compose exec db psql -U postgres -d okane
+
+# Generate App Icons
+generate-icons:
+	cd $(FLUTTER_DIR) && dart run flutter_launcher_icons
+
+# Generate Splash Screens
+generate-splash:
+	cd $(FLUTTER_DIR) && dart run flutter_native_splash:create
 
 # Clean build artifacts
 clean:
