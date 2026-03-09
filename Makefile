@@ -2,7 +2,7 @@
 FLUTTER_DIR = frontend
 DEVICE_ID = 39261FDJG000F0
 
-.PHONY: help run-dev run-prod build-prod build-apk clean reverse run-server run-server-bg
+.PHONY: help run-dev run-prod build-prod build-apk clean reverse run-server run-server-bg bump-version
 
 # Show help
 help:
@@ -14,6 +14,7 @@ help:
 	@echo "  db-shell      - Connect to PostgreSQL shell inside Docker"
 	@echo "  generate-icons - Generate app icons from assets/icons/app_icon.png"
 	@echo "  generate-splash - Generate splash screens from assets/icons/splash_icon.png"
+	@echo "  bump-version   - Increment build number (+N) in pubspec.yaml"
 	@echo "  build-prod    - Build production App Bundle (.aab) for Google Play"
 	@echo "  make build-apk     - Build production APK (.apk) for direct install"
 	@echo "  make reverse       - Setup Android port forwarding (8080)"
@@ -50,6 +51,16 @@ run-server-bg:
 # Connect to the database shell
 db-shell:
 	docker compose exec db psql -U postgres -d okane
+
+# Bump build number (+N) in pubspec.yaml
+bump-version:
+	@CURRENT=$$(grep '^version:' $(FLUTTER_DIR)/pubspec.yaml | sed 's/version: //'); \
+	NAME=$$(echo $$CURRENT | cut -d'+' -f1); \
+	BUILD=$$(echo $$CURRENT | cut -d'+' -f2); \
+	NEXT=$$((BUILD + 1)); \
+	NEW="$$NAME+$$NEXT"; \
+	sed -i '' "s/^version: .*/version: $$NEW/" $(FLUTTER_DIR)/pubspec.yaml; \
+	echo "version: $$CURRENT → $$NEW"
 
 # Generate App Icons
 generate-icons:
