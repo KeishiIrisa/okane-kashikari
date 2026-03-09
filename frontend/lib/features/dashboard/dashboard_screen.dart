@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as m show Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:intl/intl.dart';
 
 import '../../data/api_service.dart';
 import '../../data/models.dart';
@@ -39,10 +41,20 @@ class DashboardScreen extends ConsumerWidget {
     const lentColor = Color(0xFF007AFF); // 貸し: 青
     const borrowedColor = Color(0xFFEF4444); // 借り: 赤
 
-    return Scaffold(
+    return m.Scaffold(
       backgroundColor: Colors.white,
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(summaryProvider);
+          ref.invalidate(lentListProvider);
+          ref.invalidate(borrowedListProvider);
+          // Wait for the summary to reload to show the indicator for a bit
+          await ref.read(summaryProvider.future);
+        },
+        color: lentColor,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
           // 白基調のヘッダー
           SliverAppBar(
             expandedHeight: 60,
@@ -163,6 +175,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
         ],
+        ),
       ),
       floatingActionButton: SizedBox(
         width: 60,
