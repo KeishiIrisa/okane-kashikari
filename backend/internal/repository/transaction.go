@@ -24,10 +24,7 @@ type TransactionWithContact struct {
 	ContactName string     `json:"contact_name"`
 }
 
-func (r *Repository) ListTransactions(ctx context.Context, ownerID uuid.UUID, direction, status string, contactID *uuid.UUID) ([]TransactionWithContact, error) {
-	if r.db == nil {
-		return nil, nil
-	}
+func (r *Repository) baseTransactionsQuery(ctx context.Context, ownerID uuid.UUID, direction, status string, contactID *uuid.UUID) *gorm.DB {
 	q := r.db.WithContext(ctx).Table("transactions t").
 		Select("t.id, t.owner_id, t.contact_id, t.amount, t.purpose, t.direction, t.due_date, t.status, t.created_at, t.updated_at, c.name as contact_name").
 		Joins("JOIN contacts c ON t.contact_id = c.id").
@@ -41,7 +38,35 @@ func (r *Repository) ListTransactions(ctx context.Context, ownerID uuid.UUID, di
 	if contactID != nil {
 		q = q.Where("t.contact_id = ?", *contactID)
 	}
-	q = q.Order("t.created_at DESC")
+	return q
+}
+
+// ListTransactions は一覧用。期日が近い順（NULL は最後）、同一/NULL 同士は created_at が古い順。
+func (r *Repository) ListTransactions(ctx context.Context, ownerID uuid.UUID, direction, status string, contactID *uuid.UUID) ([]TransactionWithContact, error) {
+	if r.db == nil {
+		return nil, nil
+	}
+	q := r.baseTransactionsQuery(ctx, ownerID, direction, status, contactID).
+		Order("t.due_date ASC NULLS LAST").
+		Order("t.created_at ASC")
+	var list []TransactionWithContact
+	if err := q.Scan(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+// ListRecentTransactions はサマリー用。created_at の新しい順で返す。
+func (r *Repository) ListRecentTransactions(ctx context.Context, ownerID uuid.UUID, limit int) ([]TransactionWithContact, error) {
+	if r.db == nil {
+		return []TransactionWithContact{}, nil
+	}
+	if limit <= 0 {
+		return []TransactionWithContact{}, nil
+	}
+	q := r.baseTransactionsQuery(ctx, ownerID, "", "", nil).
+		Order("t.created_at DESC").
+		Limit(limit)
 	var list []TransactionWithContact
 	if err := q.Scan(&list).Error; err != nil {
 		return nil, err
