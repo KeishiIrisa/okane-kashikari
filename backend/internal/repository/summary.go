@@ -22,10 +22,7 @@ func (r *Repository) GetSummary(ctx context.Context, ownerID uuid.UUID) (*Summar
 	var lentSum, borrowedSum int
 	r.db.WithContext(ctx).Model(&Transaction{}).Where("owner_id = ? AND direction = ? AND status = ?", ownerID, "LENT", "unpaid").Select("COALESCE(SUM(amount),0)").Scan(&lentSum)
 	r.db.WithContext(ctx).Model(&Transaction{}).Where("owner_id = ? AND direction = ? AND status = ?", ownerID, "BORROWED", "unpaid").Select("COALESCE(SUM(amount),0)").Scan(&borrowedSum)
-	recent, _ := r.ListTransactions(ctx, ownerID, "", "", nil)
-	if len(recent) > recentTransactionsLimit {
-		recent = recent[:recentTransactionsLimit]
-	}
+	recent, _ := r.ListRecentTransactions(ctx, ownerID, recentTransactionsLimit)
 	return &SummaryResult{
 		TotalLentUnpaid:    lentSum,
 		TotalBorrowedUnpaid: borrowedSum,

@@ -1,0 +1,84 @@
+name: Supabase Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/supabase/migrations/*.sql"
+    paths-ignore:
+      - "backend/supabase/migrations/001_initial_schema.sql"
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install PostgreSQL client (psql)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Apply committed migrations (002+)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL secret is not set"
+            exit 1
+          fi
+          
+          python - <<'PY' > /tmp/migrations.txt
+          import os, subprocess
+          
+          before = os.environ.get("BEFORE", "")
+          after = os.environ["AFTER"]
+          
+          # On some events, BEFORE can be all zeros (e.g. first push). Fall back to previous commit if possible.
+          if not before or before == "0" * 40:
+            try:
+              before = subprocess.check_output(["git", "rev-parse", f"{after}^"], text=True).strip()
+            except Exception:
+              before = ""
+          
+          out = ""
+          if before:
+            try:
+              out = subprocess.check_output(
+                ["git", "diff", "--name-only", before, after, "--", "backend/supabase/migrations"],
+                text=True,
+              )
+            except subprocess.CalledProcessError:
+              out = ""
+          
+          files = []
+          for f in out.splitlines():
+            if not f.endswith(".sql"):
+              continue
+            if f == "backend/supabase/migrations/001_initial_schema.sql":
+              continue
+            files.append(f)
+          
+          for f in sorted(set(files)):
+            print(f)
+          PY
+          
+          if [ ! -s /tmp/migrations.txt ]; then
+            echo "No migrations to apply (excluding 001)."
+            exit 0
+          fi
+          
+          echo "Applying migrations:"
+          cat /tmp/migrations.txt
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            echo "Running $f"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
+          done < /tmp/migrations.txt
+

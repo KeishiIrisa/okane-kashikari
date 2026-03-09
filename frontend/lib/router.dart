@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import 'features/dashboard/dashboard_screen.dart';
+import 'features/history/history_screen.dart';
 import 'features/reminder/reminder_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/transactions/transaction_form_screen.dart';
@@ -9,6 +10,7 @@ final goRouter = GoRouter(
   initialLocation: '/',
   routes: [
     GoRoute(path: '/', builder: (_, __) => const DashboardScreen()),
+    GoRoute(path: '/history', builder: (_, __) => const HistoryScreen()),
     GoRoute(
       path: '/transaction/new', 
       builder: (context, state) {

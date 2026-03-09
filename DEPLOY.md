@@ -169,7 +169,7 @@ GitHub のリポジトリ → **Settings → Secrets and variables → Actions**
 ### 6-1. Android (Google Play)
 
 1. Android 用の署名鍵（keystore）を作成し、`android/app` の `key.properties` / `build.gradle.kts` に設定
-2. `flutter build appbundle --release` を実行し、`build/app/outputs/bundle/release/app-release.aab` を生成
+2. `flutter build appbundle --release -t lib/main_prod.dart` を実行し、`build/app/outputs/bundle/release/app-release.aab` を生成
 3. Google Play Console にアプリを作成
    - パッケージ名: `com.okane.kashikari.frontend`
    - 必要なスクリーンショット、アイコン、説明文などを登録

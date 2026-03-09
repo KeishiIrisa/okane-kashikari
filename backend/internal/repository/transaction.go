@@ -15,7 +15,7 @@ type TransactionWithContact struct {
 	OwnerID     uuid.UUID  `json:"owner_id"`
 	ContactID   uuid.UUID  `json:"contact_id"`
 	Amount      int        `json:"amount"`
-	Purpose     string     `json:"purpose"`
+	Purpose     *string    `json:"purpose"`
 	Direction   string     `json:"direction"`
 	DueDate     *time.Time `json:"due_date"`
 	Status      string     `json:"status"`
@@ -24,10 +24,7 @@ type TransactionWithContact struct {
 	ContactName string     `json:"contact_name"`
 }
 
-func (r *Repository) ListTransactions(ctx context.Context, ownerID uuid.UUID, direction, status string, contactID *uuid.UUID) ([]TransactionWithContact, error) {
-	if r.db == nil {
-		return nil, nil
-	}
+func (r *Repository) baseTransactionsQuery(ctx context.Context, ownerID uuid.UUID, direction, status string, contactID *uuid.UUID) *gorm.DB {
 	q := r.db.WithContext(ctx).Table("transactions t").
 		Select("t.id, t.owner_id, t.contact_id, t.amount, t.purpose, t.direction, t.due_date, t.status, t.created_at, t.updated_at, c.name as contact_name").
 		Joins("JOIN contacts c ON t.contact_id = c.id").
@@ -41,7 +38,17 @@ func (r *Repository) ListTransactions(ctx context.Context, ownerID uuid.UUID, di
 	if contactID != nil {
 		q = q.Where("t.contact_id = ?", *contactID)
 	}
-	q = q.Order("t.created_at DESC")
+	return q
+}
+
+// ListTransactions は一覧用。期日が近い順（NULL は最後）、同一/NULL 同士は created_at が古い順。
+func (r *Repository) ListTransactions(ctx context.Context, ownerID uuid.UUID, direction, status string, contactID *uuid.UUID) ([]TransactionWithContact, error) {
+	if r.db == nil {
+		return nil, nil
+	}
+	q := r.baseTransactionsQuery(ctx, ownerID, direction, status, contactID).
+		Order("t.due_date ASC NULLS LAST").
+		Order("t.created_at ASC")
 	var list []TransactionWithContact
 	if err := q.Scan(&list).Error; err != nil {
 		return nil, err
@@ -49,7 +56,25 @@ func (r *Repository) ListTransactions(ctx context.Context, ownerID uuid.UUID, di
 	return list, nil
 }
 
-func (r *Repository) CreateTransaction(ctx context.Context, ownerID, contactID uuid.UUID, amount int, purpose, direction string, dueDate *time.Time) (uuid.UUID, error) {
+// ListRecentTransactions はサマリー用。created_at の新しい順で返す。
+func (r *Repository) ListRecentTransactions(ctx context.Context, ownerID uuid.UUID, limit int) ([]TransactionWithContact, error) {
+	if r.db == nil {
+		return []TransactionWithContact{}, nil
+	}
+	if limit <= 0 {
+		return []TransactionWithContact{}, nil
+	}
+	q := r.baseTransactionsQuery(ctx, ownerID, "", "", nil).
+		Order("t.created_at DESC").
+		Limit(limit)
+	var list []TransactionWithContact
+	if err := q.Scan(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
+}
+
+func (r *Repository) CreateTransaction(ctx context.Context, ownerID, contactID uuid.UUID, amount int, purpose *string, direction string, dueDate *time.Time) (uuid.UUID, error) {
 	if r.db == nil {
 		return uuid.New(), nil
 	}
@@ -81,7 +106,7 @@ func (r *Repository) GetTransaction(ctx context.Context, id, ownerID uuid.UUID) 
 	return &t, nil
 }
 
-func (r *Repository) UpdateTransaction(ctx context.Context, id, ownerID uuid.UUID, amount *int, purpose string, dueDate *time.Time, status string) error {
+func (r *Repository) UpdateTransaction(ctx context.Context, id, ownerID uuid.UUID, amount *int, purpose *string, dueDate *time.Time, status string) error {
 	if r.db == nil {
 		return nil
 	}
@@ -89,13 +114,15 @@ func (r *Repository) UpdateTransaction(ctx context.Context, id, ownerID uuid.UUI
 	if amount != nil {
 		updates["amount"] = *amount
 	}
-	if purpose != "" {
-		updates["purpose"] = purpose
+	if purpose != nil {
+		updates["purpose"] = *purpose
+	} else if status == "" {
+		updates["purpose"] = nil
 	}
 	if dueDate != nil {
 		updates["due_date"] = dueDate
 	} else if status == "" {
-		// allow clearing due_date when doing full update
+		// allow clearing due_date when doing full update (not just status change)
 		updates["due_date"] = nil
 	}
 	if status != "" {
@@ -129,7 +156,7 @@ func (r *Repository) DeleteTransaction(ctx context.Context, id, ownerID uuid.UUI
 }
 
 func (r *Repository) MarkTransactionPaid(ctx context.Context, id, ownerID uuid.UUID) error {
-	return r.UpdateTransaction(ctx, id, ownerID, nil, "", nil, "paid")
+	return r.UpdateTransaction(ctx, id, ownerID, nil, nil, nil, "paid")
 }
 
 // ListTransactionsDueToday は due_date が「今日」(UTC 日付) かつ status=unpaid の取引を返す（バッチ用）

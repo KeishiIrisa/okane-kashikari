@@ -1,6 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.okane.kashikari.frontend">
     <application
-        android:label="frontend"
+        android:label="お金の貸し借り"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity

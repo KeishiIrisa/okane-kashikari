@@ -7,10 +7,11 @@ import '../../data/api_service.dart';
 import '../../data/models.dart';
 import '../authless_device/device_id_provider.dart';
 
-final transactionDetailProvider = FutureProvider.family<TransactionItem?, String>((ref, id) async {
-  final dio = await ref.watch(apiClientProvider.future);
-  return ApiService(dio).getTransaction(id);
-});
+final transactionDetailProvider =
+    FutureProvider.family<TransactionItem?, String>((ref, id) async {
+      final dio = await ref.watch(apiClientProvider.future);
+      return ApiService(dio).getTransaction(id);
+    });
 
 final defaultReminderMsgProvider = FutureProvider<String>((ref) async {
   final dio = await ref.watch(apiClientProvider.future);
@@ -45,23 +46,30 @@ class _ReminderScreenState extends ConsumerState<ReminderScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('催促メッセージを送る', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          '催促メッセージを送る',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF1F1F1F),
         elevation: 0,
       ),
       body: txAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator(color: accentColor)),
+        loading: () =>
+            const Center(child: CircularProgressIndicator(color: accentColor)),
         error: (e, _) => Center(child: Text('エラー: $e')),
         data: (tx) {
           if (tx == null) return const Center(child: Text('取引が見つかりません'));
           final defaultMsg = defaultMsgAsync.valueOrNull ?? '';
           if (!_initialized && defaultMsgAsync.hasValue) {
             _initialized = true;
-            final body = defaultMsg.isNotEmpty ? defaultMsg : '${tx.contactName}さん、${tx.purpose}でお貸しした¥${tx.amount}の件、お返しいただけますか？';
+            final purposePart = tx.purpose.isNotEmpty ? '${tx.purpose}' : '';
+            final body = '${purposePart}${tx.amount}円返して\n$defaultMsg';
+
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (_messageController.text.isEmpty) _messageController.text = body;
+              if (_messageController.text.isEmpty)
+                _messageController.text = body;
             });
           }
           return Padding(
@@ -73,19 +81,30 @@ class _ReminderScreenState extends ConsumerState<ReminderScreen> {
                   children: [
                     CircleAvatar(
                       backgroundColor: accentColor.withValues(alpha: 0.1),
-                      child: const Icon(LucideIcons.user, color: accentColor, size: 20),
+                      child: const Icon(
+                        LucideIcons.user,
+                        color: accentColor,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Text(
                       '${tx.contactName}さんへのメッセージ',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
                 const Text(
                   'メッセージ内容（編集できます）',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF737373), fontSize: 13),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF737373),
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 ShadInput(
@@ -115,7 +134,13 @@ class _ReminderScreenState extends ConsumerState<ReminderScreen> {
                         height: 24,
                       ),
                       const SizedBox(width: 8),
-                      const Text('LINE で送る', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                      const Text(
+                        'LINE で送る',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -135,9 +160,9 @@ class _ReminderScreenState extends ConsumerState<ReminderScreen> {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('LINE を開けませんでした')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('LINE を開けませんでした')));
       }
     }
   }
@@ -149,9 +174,9 @@ class _ReminderScreenState extends ConsumerState<ReminderScreen> {
       await launchUrl(url);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('アプリを開けませんでした')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('アプリを開けませんでした')));
       }
     }
   }

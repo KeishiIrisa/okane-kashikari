@@ -33,7 +33,7 @@ func RunDueDateNotifications(cfg *config.Config) error {
 		return nil
 	}
 
-		for _, t := range list {
+	for _, t := range list {
 		tokens, err := repo.ListTokensByDeviceID(ctx, t.OwnerID)
 		if err != nil {
 			log.Printf("batch: list tokens for device %s: %v", t.OwnerID, err)
@@ -43,6 +43,7 @@ func RunDueDateNotifications(cfg *config.Config) error {
 			continue
 		}
 		var title, body string
+		hasPurpose := t.Purpose != nil && *t.Purpose != ""
 		data := map[string]string{
 			"transaction_id": t.ID.String(),
 			"direction":      t.Direction,
@@ -50,7 +51,12 @@ func RunDueDateNotifications(cfg *config.Config) error {
 
 		if t.Direction == "LENT" {
 			// 通知タイトル: 「◯◯さんへの◯◯の催促時間です」
-			lineMessage := fmt.Sprintf("%sさんへの%sの催促時間です", t.ContactName, t.Purpose)
+			var lineMessage string
+			if hasPurpose {
+				lineMessage = fmt.Sprintf("%sさんへの%sの催促時間です", t.ContactName, *t.Purpose)
+			} else {
+				lineMessage = fmt.Sprintf("%sさんへの催促時間です", t.ContactName)
+			}
 			title = lineMessage
 
 			// LINE URL スキーム。通知タップ時にアプリ側でこの URL を開く想定。
@@ -58,7 +64,11 @@ func RunDueDateNotifications(cfg *config.Config) error {
 			body = lineURL
 			data["line_url"] = lineURL
 		} else {
-			body = fmt.Sprintf("%sさんへの%sの支払い期限です", t.ContactName, t.Purpose)
+			if hasPurpose {
+				body = fmt.Sprintf("%sさんへの%sの支払い期限です", t.ContactName, *t.Purpose)
+			} else {
+				body = fmt.Sprintf("%sさんへの支払い期限です", t.ContactName)
+			}
 			title = "借りの期日"
 		}
 

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as m show Scaffold;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:intl/intl.dart';
 
 import '../../data/api_service.dart';
 import '../../data/models.dart';
@@ -39,10 +41,20 @@ class DashboardScreen extends ConsumerWidget {
     const lentColor = Color(0xFF007AFF); // 貸し: 青
     const borrowedColor = Color(0xFFEF4444); // 借り: 赤
 
-    return Scaffold(
+    return m.Scaffold(
       backgroundColor: Colors.white,
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(summaryProvider);
+          ref.invalidate(lentListProvider);
+          ref.invalidate(borrowedListProvider);
+          // Wait for the summary to reload to show the indicator for a bit
+          await ref.read(summaryProvider.future);
+        },
+        color: lentColor,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
           // 白基調のヘッダー
           SliverAppBar(
             expandedHeight: 60,
@@ -75,11 +87,15 @@ class DashboardScreen extends ConsumerWidget {
               ],
             ),
             actions: [
+              ShadButton.ghost(
+                onPressed: () => context.push('/history'),
+                child: const Icon(LucideIcons.history, color: Color(0xFF1F1F1F), size: 22),
+              ),
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: ShadButton.ghost(
                   onPressed: () => context.push('/settings'),
-                  child: Icon(LucideIcons.settings, color: Color(0xFF1F1F1F), size: 22),
+                  child: const Icon(LucideIcons.settings, color: Color(0xFF1F1F1F), size: 22),
                 ),
               ),
             ],
@@ -159,6 +175,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
         ],
+        ),
       ),
       floatingActionButton: SizedBox(
         width: 60,
@@ -339,9 +356,6 @@ class _TransactionTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLent = transaction.direction == 'LENT';
-    final dueStr = transaction.dueDate != null && transaction.dueDate!.isNotEmpty
-        ? _formatDate(transaction.dueDate!)
-        : '期日なし';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -369,7 +383,13 @@ class _TransactionTile extends ConsumerWidget {
             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
           ),
           subtitle: Text(
-            '${transaction.purpose} · $dueStr',
+            [
+              if (transaction.purpose.isNotEmpty) transaction.purpose,
+              if (transaction.dueDate != null && transaction.dueDate!.isNotEmpty)
+                _formatDate(transaction.dueDate!)
+              else
+                '期日なし'
+            ].join(' · '),
             style: const TextStyle(color: Color(0xFF737373), fontSize: 13, fontWeight: FontWeight.w500),
           ),
           trailing: Row(
