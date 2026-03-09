@@ -5,8 +5,6 @@ on:
     branches: [main]
     paths:
       - "backend/supabase/migrations/*.sql"
-    paths-ignore:
-      - "backend/supabase/migrations/001_initial_schema.sql"
   workflow_dispatch:
 
 jobs:
