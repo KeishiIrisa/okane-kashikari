@@ -30,7 +30,7 @@ run-prod:
 
 # Build production App Bundle (.aab)
 build-prod:
-	cd $(FLUTTER_DIR) && flutter build appbundle --release -t lib/main_prod.dart
+	cd $(FLUTTER_DIR) && flutter clean && flutter pub get && flutter build appbundle --release -t lib/main_prod.dart
 
 # Build production APK (.apk) for direct install/testing
 build-apk:
