@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/api_service.dart';
 import '../../router.dart';
@@ -45,15 +44,12 @@ Future<void> initPushNotifications(WidgetRef ref) async {
 Future<void> _handleNotificationTap(WidgetRef ref, RemoteMessage message) async {
   final data = message.data;
   final direction = data['direction'];
+  final transactionId = data['transaction_id'];
 
-  // LENT の場合は LINE URL に飛ばす（アプリ内画面遷移ではなく外部リンク）
+  // LENT の場合は該当 transaction の LINE 催促画面へ遷移
   if (direction == 'LENT') {
-    final lineUrl = data['line_url'];
-    if (lineUrl is String && lineUrl.isNotEmpty) {
-      final uri = Uri.tryParse(lineUrl);
-      if (uri != null) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+    if (transactionId is String && transactionId.isNotEmpty) {
+      goRouter.push('/transaction/$transactionId/reminder');
     }
     return;
   }
