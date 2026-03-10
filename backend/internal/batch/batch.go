@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/url"
 
 	"github.com/okane-kashikari/backend/internal/config"
 	"github.com/okane-kashikari/backend/internal/fcm"
@@ -50,19 +49,12 @@ func RunDueDateNotifications(cfg *config.Config) error {
 		}
 
 		if t.Direction == "LENT" {
-			// 通知タイトル: 「◯◯さんへの◯◯の催促時間です」
-			var lineMessage string
+			title = "お金の請求日"
 			if hasPurpose {
-				lineMessage = fmt.Sprintf("%sさんへの%sの催促時間です", t.ContactName, *t.Purpose)
+				body = fmt.Sprintf("%sさんへの%s %d円の請求日です。", t.ContactName, *t.Purpose, t.Amount)
 			} else {
-				lineMessage = fmt.Sprintf("%sさんへの催促時間です", t.ContactName)
+				body = fmt.Sprintf("%sさんへの%d円の請求日です。", t.ContactName, t.Amount)
 			}
-			title = lineMessage
-
-			// LINE URL スキーム。通知タップ時にアプリ側でこの URL を開く想定。
-			lineURL := fmt.Sprintf("https://line.me/R/msg/text/?%s", url.QueryEscape(lineMessage))
-			body = lineURL
-			data["line_url"] = lineURL
 		} else {
 			if hasPurpose {
 				body = fmt.Sprintf("%sさんへの%sの支払い期限です", t.ContactName, *t.Purpose)
