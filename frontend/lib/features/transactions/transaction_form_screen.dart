@@ -36,6 +36,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   String? _contactId;
   final _amountController = TextEditingController();
   final _purposeController = TextEditingController();
+  final _dueDateFocusNode = FocusNode();
   DateTime? _dueDate;
   bool _loading = false;
   bool _amountLimitExceeded = false;
@@ -52,6 +53,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   void dispose() {
     _amountController.dispose();
     _purposeController.dispose();
+    _dueDateFocusNode.dispose();
     super.dispose();
   }
 
@@ -336,60 +338,66 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () async {
-                final d = await showDatePicker(
-                  context: context,
-                  initialDate: _dueDate ?? DateTime.now(),
-                  firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                  lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-                  locale: const Locale('ja', 'JP'),
-                  builder: (context, child) {
-                    return Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: ColorScheme.light(primary: accentColor),
-                      ),
-                      child: child!,
-                    );
-                  },
-                );
-                if (d != null) setState(() => _dueDate = d);
-              },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF9F9F9),
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    Icon(LucideIcons.calendar, size: 18, color: accentColor),
-                    const SizedBox(width: 12),
-                    Text(
-                      _dueDate != null
-                          ? DateFormat('yyyy年M月d日').format(_dueDate!)
-                          : '期限を決めない',
-                      style: TextStyle(
-                        color: _dueDate != null
-                            ? const Color(0xFF1F1F1F)
-                            : const Color(0xFF737373),
-                        fontWeight: _dueDate != null
-                            ? FontWeight.w600
-                            : FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (_dueDate != null)
-                      GestureDetector(
-                        onTap: () => setState(() => _dueDate = null),
-                        child: Icon(
-                          LucideIcons.x,
-                          size: 16,
-                          color: Colors.grey.shade400,
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                focusNode: _dueDateFocusNode,
+                onTap: () async {
+                  final d = await showDatePicker(
+                    context: context,
+                    initialDate: _dueDate ?? DateTime.now(),
+                    firstDate:
+                        DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+                    locale: const Locale('ja', 'JP'),
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: ColorScheme.light(primary: accentColor),
+                        ),
+                        child: child!,
+                      );
+                    },
+                  );
+                  if (d != null) setState(() => _dueDate = d);
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9F9F9),
+                    border: Border.all(color: const Color(0xFFE5E5E5)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(LucideIcons.calendar, size: 18, color: accentColor),
+                      const SizedBox(width: 12),
+                      Text(
+                        _dueDate != null
+                            ? DateFormat('yyyy年M月d日').format(_dueDate!)
+                            : '期限を決めない',
+                        style: TextStyle(
+                          color: _dueDate != null
+                              ? const Color(0xFF1F1F1F)
+                              : const Color(0xFF737373),
+                          fontWeight: _dueDate != null
+                              ? FontWeight.w600
+                              : FontWeight.bold,
                         ),
                       ),
-                  ],
+                      const Spacer(),
+                      if (_dueDate != null)
+                        GestureDetector(
+                          onTap: () => setState(() => _dueDate = null),
+                          child: Icon(
+                            LucideIcons.x,
+                            size: 16,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
