@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../data/api_service.dart';
 import '../../data/models.dart';
 import '../authless_device/device_id_provider.dart';
+import '../../core/widgets/error_view.dart';
 
 final historyListProvider = FutureProvider<List<TransactionItem>>((ref) async {
   final dio = await ref.watch(apiClientProvider.future);
@@ -50,7 +51,11 @@ class HistoryScreen extends ConsumerWidget {
           loading: () => const Center(
             child: CircularProgressIndicator(color: Color(0xFF007AFF)),
           ),
-          error: (e, _) => Center(child: Text('エラー: $e')),
+          error: (e, _) => ErrorView(
+            message: '履歴の取得に失敗しました',
+            isLoading: historyAsync.isLoading,
+            onRetry: () => ref.invalidate(historyListProvider),
+          ),
           data: (list) {
             if (list.isEmpty) {
               return ListView( // Use ListView to make RefreshIndicator work

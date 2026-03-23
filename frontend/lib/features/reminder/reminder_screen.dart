@@ -6,6 +6,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../data/api_service.dart';
 import '../../data/models.dart';
 import '../authless_device/device_id_provider.dart';
+import '../../core/widgets/error_view.dart';
 
 final transactionDetailProvider =
     FutureProvider.family<TransactionItem?, String>((ref, id) async {
@@ -58,7 +59,11 @@ class _ReminderScreenState extends ConsumerState<ReminderScreen> {
       body: txAsync.when(
         loading: () =>
             const Center(child: CircularProgressIndicator(color: accentColor)),
-        error: (e, _) => Center(child: Text('エラー: $e')),
+        error: (e, _) => ErrorView(
+          message: 'データの取得に失敗しました',
+          isLoading: txAsync.isLoading,
+          onRetry: () => ref.invalidate(transactionDetailProvider(widget.transactionId)),
+        ),
         data: (tx) {
           if (tx == null) return const Center(child: Text('取引が見つかりません'));
           final defaultMsg = defaultMsgAsync.valueOrNull ?? '';

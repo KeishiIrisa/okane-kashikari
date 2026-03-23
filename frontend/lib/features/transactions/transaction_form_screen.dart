@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -8,6 +9,7 @@ import '../../data/api_service.dart';
 import '../../data/models.dart';
 import '../authless_device/device_id_provider.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../../core/widgets/error_view.dart';
 
 final contactsListProvider = FutureProvider<List<ContactItem>>((ref) async {
   final dio = await ref.watch(apiClientProvider.future);
@@ -34,8 +36,10 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   String? _contactId;
   final _amountController = TextEditingController();
   final _purposeController = TextEditingController();
+  final _dueDateFocusNode = FocusNode();
   DateTime? _dueDate;
   bool _loading = false;
+  bool _amountLimitExceeded = false;
 
   @override
   void initState() {
@@ -49,6 +53,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   void dispose() {
     _amountController.dispose();
     _purposeController.dispose();
+    _dueDateFocusNode.dispose();
     super.dispose();
   }
 
@@ -60,7 +65,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       setState(() {
         _isLent = t.direction == 'LENT';
         _contactId = t.contactId;
-        _amountController.text = '${t.amount}';
+        final formatted = NumberFormat('#,###').format(t.amount);
+        _amountController.text = formatted;
+        _amountLimitExceeded = '${t.amount}'.length >= 9;
         _purposeController.text = t.purpose;
         if (t.dueDate != null && t.dueDate!.isNotEmpty) {
           try {
@@ -152,30 +159,56 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: ShadInput(
-                    controller: _amountController,
-                    cursorColor: accentColor,
-                    placeholder: Text(
-                      '0',
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade300,
-                        letterSpacing: -0.5,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ShadInput(
+                        controller: _amountController,
+                        cursorColor: accentColor,
+                        placeholder: Text(
+                          '0',
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade300,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          _CommaTextInputFormatter(),
+                        ],
+                        onChanged: (v) {
+                          setState(() {
+                            _amountLimitExceeded = v.replaceAll(',', '').length >= 9;
+                          });
+                        },
+                        style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.w600,
+                          color: accentColor,
+                          letterSpacing: -0.5,
+                        ),
+                        padding: const EdgeInsets.only(left: 6),
+                        decoration: const ShadDecoration(
+                          border: ShadBorder.none,
+                          focusedBorder: ShadBorder.none,
+                        ),
                       ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w600,
-                      color: accentColor,
-                      letterSpacing: -0.5,
-                    ),
-                    padding: const EdgeInsets.only(left: 6),
-                    decoration: const ShadDecoration(
-                      border: ShadBorder.none,
-                      focusedBorder: ShadBorder.none,
-                    ),
+                      if (_amountLimitExceeded)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 6),
+                          child: Text(
+                            '金額は最大9桁まで入力可能です',
+                            style: TextStyle(
+                              color: Color(0xFFEF4444),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -198,7 +231,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 readOnly: true,
                 decoration: ShadDecoration(border: ShadBorder.none),
               ),
-              error: (e, _) => Text('読み込みエラー: $e'),
+              error: (e, _) => ErrorView(
+                message: '連絡先の取得に失敗しました',
+                isLoading: contactsAsync.isLoading,
+                onRetry: () => ref.invalidate(contactsListProvider),
+              ),
               data: (contacts) {
                 return Column(
                   children: [
@@ -301,60 +338,66 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () async {
-                final d = await showDatePicker(
-                  context: context,
-                  initialDate: _dueDate ?? DateTime.now(),
-                  firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                  lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
-                  locale: const Locale('ja', 'JP'),
-                  builder: (context, child) {
-                    return Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: ColorScheme.light(primary: accentColor),
-                      ),
-                      child: child!,
-                    );
-                  },
-                );
-                if (d != null) setState(() => _dueDate = d);
-              },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF9F9F9),
-                  border: Border.all(color: const Color(0xFFE5E5E5)),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    Icon(LucideIcons.calendar, size: 18, color: accentColor),
-                    const SizedBox(width: 12),
-                    Text(
-                      _dueDate != null
-                          ? DateFormat('yyyy年M月d日').format(_dueDate!)
-                          : '期限を決めない',
-                      style: TextStyle(
-                        color: _dueDate != null
-                            ? const Color(0xFF1F1F1F)
-                            : const Color(0xFF737373),
-                        fontWeight: _dueDate != null
-                            ? FontWeight.w600
-                            : FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (_dueDate != null)
-                      GestureDetector(
-                        onTap: () => setState(() => _dueDate = null),
-                        child: Icon(
-                          LucideIcons.x,
-                          size: 16,
-                          color: Colors.grey.shade400,
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                focusNode: _dueDateFocusNode,
+                onTap: () async {
+                  final d = await showDatePicker(
+                    context: context,
+                    initialDate: _dueDate ?? DateTime.now(),
+                    firstDate:
+                        DateTime.now().subtract(const Duration(days: 365)),
+                    lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+                    locale: const Locale('ja', 'JP'),
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: ColorScheme.light(primary: accentColor),
+                        ),
+                        child: child!,
+                      );
+                    },
+                  );
+                  if (d != null) setState(() => _dueDate = d);
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9F9F9),
+                    border: Border.all(color: const Color(0xFFE5E5E5)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(LucideIcons.calendar, size: 18, color: accentColor),
+                      const SizedBox(width: 12),
+                      Text(
+                        _dueDate != null
+                            ? DateFormat('yyyy年M月d日').format(_dueDate!)
+                            : '期限を決めない',
+                        style: TextStyle(
+                          color: _dueDate != null
+                              ? const Color(0xFF1F1F1F)
+                              : const Color(0xFF737373),
+                          fontWeight: _dueDate != null
+                              ? FontWeight.w600
+                              : FontWeight.bold,
                         ),
                       ),
-                  ],
+                      const Spacer(),
+                      if (_dueDate != null)
+                        GestureDetector(
+                          onTap: () => setState(() => _dueDate = null),
+                          child: Icon(
+                            LucideIcons.x,
+                            size: 16,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -462,7 +505,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       ).showSnackBar(const SnackBar(content: Text('相手を選んでください')));
       return;
     }
-    final amountText = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final amountText = _amountController.text.replaceAll(',', '');
     final amount = int.tryParse(amountText);
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(
@@ -512,13 +555,79 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         );
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('エラー: $e')));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+}
+
+class _CommaTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    // カンマを除去して数字のみにする
+    final String numericText = newValue.text.replaceAll(',', '');
+
+    // 数字以外が含まれている場合は入力を拒否
+    if (numericText.isNotEmpty && int.tryParse(numericText) == null) {
+      return oldValue;
+    }
+
+    // 9桁制限（数値として）
+    if (numericText.length > 9) {
+      return oldValue;
+    }
+
+    final int? value = int.tryParse(numericText);
+    if (value == null) {
+      return newValue.copyWith(
+        text: '',
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+    }
+
+    final String formatted = NumberFormat('#,###').format(value);
+
+    // カーソル位置の調整
+    // 入力後の文字列におけるカーソル位置を、数字の数に基づいて計算する
+    int cursorOffset = newValue.selection.end;
+    int commasBeforeCursor = 0;
+    for (int i = 0; i < cursorOffset && i < newValue.text.length; i++) {
+      if (newValue.text[i] == ',') {
+        commasBeforeCursor++;
+      }
+    }
+
+    int digitsBeforeCursor = cursorOffset - commasBeforeCursor;
+    int newCursorOffset = 0;
+    int digitsCount = 0;
+    while (digitsCount < digitsBeforeCursor && newCursorOffset < formatted.length) {
+      if (formatted[newCursorOffset] != ',') {
+        digitsCount++;
+      }
+      newCursorOffset++;
+    }
+
+    // 最後にカンマが追加された場合の調整
+    if (newCursorOffset < formatted.length && formatted[newCursorOffset] == ',') {
+      newCursorOffset++;
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: newCursorOffset),
+    );
   }
 }
 
