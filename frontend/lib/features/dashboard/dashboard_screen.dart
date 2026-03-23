@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../data/api_service.dart';
 import '../../data/models.dart';
 import '../authless_device/device_id_provider.dart';
+import '../../core/widgets/error_view.dart';
 
 final summaryProvider = FutureProvider<SummaryData>((ref) async {
   final dio = await ref.watch(apiClientProvider.future);
@@ -107,7 +108,11 @@ class DashboardScreen extends ConsumerWidget {
                 padding: EdgeInsets.all(32),
                 child: Center(child: CircularProgressIndicator(color: lentColor)),
               ),
-              error: (e, _) => Center(child: Text('エラー: $e')),
+              error: (e, _) => ErrorView(
+                message: 'サマリーの取得に失敗しました',
+                isLoading: summaryAsync.isLoading,
+                onRetry: () => ref.invalidate(summaryProvider),
+              ),
               data: (summary) {
                 return Column(
                   children: [
@@ -315,7 +320,11 @@ class _TransactionList extends ConsumerWidget {
           child: CircularProgressIndicator(color: accentColor),
         ),
       ),
-      error: (e, _) => Center(child: Text('エラー: $e')),
+      error: (e, _) => ErrorView(
+        message: 'データの取得に失敗しました',
+        isLoading: async.isLoading,
+        onRetry: () => ref.invalidate(provider),
+      ),
       data: (list) {
         if (list.isEmpty) {
           return Padding(

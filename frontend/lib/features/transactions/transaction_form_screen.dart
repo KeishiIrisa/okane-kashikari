@@ -8,6 +8,7 @@ import '../../data/api_service.dart';
 import '../../data/models.dart';
 import '../authless_device/device_id_provider.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../../core/widgets/error_view.dart';
 
 final contactsListProvider = FutureProvider<List<ContactItem>>((ref) async {
   final dio = await ref.watch(apiClientProvider.future);
@@ -198,7 +199,11 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 readOnly: true,
                 decoration: ShadDecoration(border: ShadBorder.none),
               ),
-              error: (e, _) => Text('読み込みエラー: $e'),
+              error: (e, _) => ErrorView(
+                message: '連絡先の取得に失敗しました',
+                isLoading: contactsAsync.isLoading,
+                onRetry: () => ref.invalidate(contactsListProvider),
+              ),
               data: (contacts) {
                 return Column(
                   children: [
