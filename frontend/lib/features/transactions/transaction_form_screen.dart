@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -37,6 +38,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
   final _purposeController = TextEditingController();
   DateTime? _dueDate;
   bool _loading = false;
+  bool _amountLimitExceeded = false;
 
   @override
   void initState() {
@@ -61,7 +63,9 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       setState(() {
         _isLent = t.direction == 'LENT';
         _contactId = t.contactId;
-        _amountController.text = '${t.amount}';
+        final formatted = NumberFormat('#,###').format(t.amount);
+        _amountController.text = formatted;
+        _amountLimitExceeded = '${t.amount}'.length >= 9;
         _purposeController.text = t.purpose;
         if (t.dueDate != null && t.dueDate!.isNotEmpty) {
           try {
@@ -153,30 +157,56 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: ShadInput(
-                    controller: _amountController,
-                    cursorColor: accentColor,
-                    placeholder: Text(
-                      '0',
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade300,
-                        letterSpacing: -0.5,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ShadInput(
+                        controller: _amountController,
+                        cursorColor: accentColor,
+                        placeholder: Text(
+                          '0',
+                          style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade300,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          _CommaTextInputFormatter(),
+                        ],
+                        onChanged: (v) {
+                          setState(() {
+                            _amountLimitExceeded = v.replaceAll(',', '').length >= 9;
+                          });
+                        },
+                        style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.w600,
+                          color: accentColor,
+                          letterSpacing: -0.5,
+                        ),
+                        padding: const EdgeInsets.only(left: 6),
+                        decoration: const ShadDecoration(
+                          border: ShadBorder.none,
+                          focusedBorder: ShadBorder.none,
+                        ),
                       ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w600,
-                      color: accentColor,
-                      letterSpacing: -0.5,
-                    ),
-                    padding: const EdgeInsets.only(left: 6),
-                    decoration: const ShadDecoration(
-                      border: ShadBorder.none,
-                      focusedBorder: ShadBorder.none,
-                    ),
+                      if (_amountLimitExceeded)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 6),
+                          child: Text(
+                            '金額は最大9桁まで入力可能です',
+                            style: TextStyle(
+                              color: Color(0xFFEF4444),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -467,7 +497,7 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
       ).showSnackBar(const SnackBar(content: Text('相手を選んでください')));
       return;
     }
-    final amountText = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final amountText = _amountController.text.replaceAll(',', '');
     final amount = int.tryParse(amountText);
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(
@@ -517,13 +547,79 @@ class _TransactionFormScreenState extends ConsumerState<TransactionFormScreen> {
         );
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('エラー: $e')));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+}
+
+class _CommaTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    // カンマを除去して数字のみにする
+    final String numericText = newValue.text.replaceAll(',', '');
+
+    // 数字以外が含まれている場合は入力を拒否
+    if (numericText.isNotEmpty && int.tryParse(numericText) == null) {
+      return oldValue;
+    }
+
+    // 9桁制限（数値として）
+    if (numericText.length > 9) {
+      return oldValue;
+    }
+
+    final int? value = int.tryParse(numericText);
+    if (value == null) {
+      return newValue.copyWith(
+        text: '',
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+    }
+
+    final String formatted = NumberFormat('#,###').format(value);
+
+    // カーソル位置の調整
+    // 入力後の文字列におけるカーソル位置を、数字の数に基づいて計算する
+    int cursorOffset = newValue.selection.end;
+    int commasBeforeCursor = 0;
+    for (int i = 0; i < cursorOffset && i < newValue.text.length; i++) {
+      if (newValue.text[i] == ',') {
+        commasBeforeCursor++;
+      }
+    }
+
+    int digitsBeforeCursor = cursorOffset - commasBeforeCursor;
+    int newCursorOffset = 0;
+    int digitsCount = 0;
+    while (digitsCount < digitsBeforeCursor && newCursorOffset < formatted.length) {
+      if (formatted[newCursorOffset] != ',') {
+        digitsCount++;
+      }
+      newCursorOffset++;
+    }
+
+    // 最後にカンマが追加された場合の調整
+    if (newCursorOffset < formatted.length && formatted[newCursorOffset] == ',') {
+      newCursorOffset++;
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: newCursorOffset),
+    );
   }
 }
 
